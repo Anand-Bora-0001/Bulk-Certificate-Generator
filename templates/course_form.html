@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Certificate Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .form-container {
+            background: #fff;
+            padding: 20px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .form-container h1 {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007BFF;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .form-group button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>Enter Details for {{ course_name }}</h1>
+        <form action="/certificate-preview" method="post">
+            <input type="hidden" name="course_name" value="{{ course_name }}">
+            <div class="form-group">
+                <label for="user_name">User Name</label>
+                <input type="text" id="user_name" name="user_name" required>
+            </div>
+            <div class="form-group">
+                <label for="course_duration">Course Duration</label>
+                <input type="text" id="course_duration" name="course_duration" required>
+            </div>
+            <div class="form-group">
+                <label for="certificate_id">Certificate ID</label>
+                <input type="text" id="certificate_id" name="certificate_id" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Preview Certificate</button>
+            </div>
+        </form>
+        <form action="/upload-csv" method="POST" enctype="multipart/form-data">
+            <label for="csv-file">Upload CSV for Bulk Certificate Generation:</label>
+            <input type="file" id="csv-file" name="csv_file" accept=".csv" required>
+            <button type="submit">Upload and Generate</button>
+        </form>
+    </div>
+</body>
+</html>
