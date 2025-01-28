@@ -5,69 +5,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificate Preview</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f5f5f5;
-            position: relative;
-        }
-        .container {
-            position: relative;
-            width: 952px; /* Match the image width */
-            height: 788px; /* Match the image height */
-            z-index: 1;
-        }
-        .certificate-template {
-            position: absolute;
-            top: 49px;
-            left: 630px;
-            width: 1044px;
-            height: 810px;
-            z-index: 0; /* Make sure the image stays behind other elements */
-        }
-        .draggable {
-            position: absolute;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid #ccc;
-            cursor: move;
-            border-radius: 5px;
-            font-size: 18px; /* Make the font larger for readability */
-        }
-        #name { top: 150px; left: 100px; font-size: 24px; font-weight: bold; }
-        #duration { top: 250px; left: 100px; font-size: 20px; }
-        #certificate-id { top: 350px; left: 100px; font-size: 20px; }
-        #controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 5px;
-            border: none;
-            background-color: #007BFF;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        /* New styles for font selection and size */
-        #font-settings {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 2;
-        }
-        #font-settings select, #font-settings input {
-            margin: 5px;
-            padding: 5px;
-        }
+          @font-face {
+        font-family: 'CooperBlkBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperBlkBT-Regular.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'CooperBlkBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperBlkBT-Italic.ttf') format('truetype');
+        font-weight: normal;
+        font-style: italic;
+    }
+    @font-face {
+        font-family: 'CooperLtBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperLtBT-Regular.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'CooperLtBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperLtBT-Bold.ttf') format('truetype');
+        font-weight: bold;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'CooperLtBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperLtBT-Italic.ttf') format('truetype');
+        font-weight: normal;
+        font-style: italic;
+    }
+    @font-face {
+        font-family: 'CooperLtBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperLtBT-BoldItalic.ttf') format('truetype');
+        font-weight: bold;
+        font-style: italic;
+    }
+    @font-face {
+        font-family: 'CooperMdBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperMdBT-Regular.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'CooperMdBT';
+        src: url('/home/anand/Documents/Bulk_certificate/static/fonts/CooperMdBT-Italic.ttf') format('truetype');
+        font-weight: normal;
+        font-style: italic;
+    }
+    body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f5f5f5;
+    position: relative;
+}
+
+.container {
+    position: relative;
+    width: 1084px; /* Match the certificate template width */
+    height: 799px; /* Match the certificate template height */
+    z-index: 1;
+    
+}
+
+.certificate-template {
+    position: absolute;
+    top: 119px;
+    left: 16px;
+    width: 101%;
+    height: 61%;
+    z-index: 0;
+    object-fit: contain; /* Scale the template without distortion */
+}
+
+.draggable {
+    position: absolute;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: move;
+    font-size: 18px;
+    color: black;
+    font-family: Arial, sans-serif;
+}
+
+/* Align text fields */
+#name {
+    top: 260px; /* Adjust to align with the "Presented To" field */
+    left: 500px; /* Adjust to align horizontally */
+    font-size: 28px;
+    font-weight: bold;
+}
+
+#duration {
+    top: 600px; /* Adjust for the "Duration" field */
+    left: 850px; /* Adjust to align with the "Date" field */
+    font-size: 18px;
+}
+
+#certificate-id {
+    top: 600px; /* Adjust for the "ID" field */
+    left: 160px; /* Adjust for alignment */
+    font-size: 18px;
+}
+
+/* Controls for buttons */
+#controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 2;
+}
+
+button {
+    padding: 9px 19px;
+    margin: 5px;
+    border: none;
+    background-color: #007BFF;
+    color: white;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#font-settings {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 2;
+}
+
+#font-settings select,
+#font-settings input {
+    margin: 5px;
+    padding: 5px;
+}
+
+
     </style>
 </head>
 <body>
@@ -85,6 +166,14 @@
             <option value="Arial, sans-serif">Arial</option>
             <option value="Times New Roman, serif">Times New Roman</option>
             <option value="Courier New, monospace">Courier New</option>
+            <option value="'CooperBlkBT'">Cooper Black</option>
+            <option value="'CooperBlkBT', italic">Cooper Black Italic</option>
+            <option value="'CooperLtBT'">Cooper Light</option>
+            <option value="'CooperLtBT', bold">Cooper Light Bold</option>
+            <option value="'CooperLtBT', italic">Cooper Light Italic</option>
+            <option value="'CooperLtBT', bold italic">Cooper Light Bold Italic</option>
+            <option value="'CooperMdBT'">Cooper Medium</option>
+            <option value="'CooperMdBT', italic">Cooper Medium Italic</option>
         </select>
         <label for="font-size">Size:</label>
         <input type="number" id="font-size" value="20" min="10" max="100">
@@ -179,17 +268,18 @@
     document.getElementById('element-select').addEventListener('change', updateFont);
 
     function updateFont() {
-        const selectedElement = document.getElementById('element-select').value;
-        const font = document.getElementById('font-select').value;
-        const fontSize = document.getElementById('font-size').value;
-        const targetElement = document.getElementById(selectedElement);
-        targetElement.style.fontFamily = font;
-        targetElement.style.fontSize = fontSize + 'px';
-        
-        // Update hidden fields
-        document.getElementById('font-style-input').value = font;
-        document.getElementById('font-size-input').value = fontSize;
-    }
+    const selectedElement = document.getElementById('element-select').value;
+    const font = document.getElementById('font-select').value;
+    const fontSize = document.getElementById('font-size').value;
+    const targetElement = document.getElementById(selectedElement);
+    targetElement.style.fontFamily = font;
+    targetElement.style.fontSize = fontSize + 'px';
+    
+    // Update hidden fields
+    document.getElementById('font-style-input').value = font;
+    document.getElementById('font-size-input').value = fontSize;
+}
+
 </script>
 </body>
 </html>

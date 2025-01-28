@@ -120,8 +120,17 @@ def download_pdf():
             font_map = {
                 'Arial, sans-serif': 'Arial',
                 'Times New Roman, serif': 'Times',
-                'Courier New, monospace': 'Courier'
-            }
+                'Courier New, monospace': 'Courier',
+                'CooperBlkBT-Italic': 'CooperBlkBT-Italic',
+                'CooperBlkBT-Italic': 'CooperBlkBT-Italic',
+                'CooperBlkBT-Regular': 'CooperBlkBT-Regular',
+                'CooperLtBT-Bold': 'CooperLtBT-Bold',
+                'CooperLtBT-BoldItalic': 'CooperLtBT-BoldItalic',
+                'CooperLtBT-Italic': 'CooperLtBT-Italic',
+                'CooperLtBT-Regular': 'CooperLtBT-Regular',
+                'CooperMdBT-Italic': 'CooperMdBT-Italic',
+                'CooperMdBT-Regular': 'CooperMdBT-Regular'
+                }
             font_style = font_map.get(font_style, 'Arial')  # Default to Arial if font not mapped
 
             # Set font and add text
@@ -176,6 +185,37 @@ def create_course():
 
     # Redirect to home page after course creation
     return redirect('/')
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload-csv', methods=['POST'])
+def upload_csv():
+    if 'csv_file' not in request.files:
+        return redirect(request.url)
+    
+    file = request.files['csv_file']
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+
+        # Process CSV file for bulk certificate generation
+        with open(file_path, newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                user_name = row['user_name']
+                course_duration = row['course_duration']
+                certificate_id = row['certificate_id']
+
+                # Call the function to generate certificates for each row
+                # You can add logic to save or generate the certificates here
+                print(f'Generating certificate for {user_name} ({course_duration}, {certificate_id})')
+
+        return 'Bulk certificate generation is successful!'
+
+    return 'Invalid file format. Please upload a CSV file.'
 
 if __name__ == '__main__':
     app.run(debug=True)
