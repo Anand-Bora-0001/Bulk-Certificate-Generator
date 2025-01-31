@@ -1,1 +1,20 @@
-{"name": {"top": "326.991px", "left": "369.508px", "fontSize": "", "fontStyle": ""}, "duration": {"top": "417.602px", "left": "350.906px", "fontSize": "", "fontStyle": ""}, "certificate_id": {"top": "425.602px", "left": "766.906px", "fontSize": "", "fontStyle": ""}}
+{
+  "name": {
+    "top": "336",
+    "left": "399",
+    "fontSize": "46",
+    "fontStyle": "CooperLtBT-Bold"
+  },
+  "certificate_id": {
+    "top": "499",
+    "left": "161",
+    "fontSize": "16",
+    "fontStyle": "\"Times New Roman\""
+  },
+  "course_duration": {
+    "top": "508",
+    "left": "854",
+    "fontSize": "16",
+    "fontStyle": "\"Times New Roman\""
+  }
+}
