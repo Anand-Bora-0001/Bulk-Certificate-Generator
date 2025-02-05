@@ -1,45 +1,48 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, jsonify
-from fpdf import FPDF
+from flask import Flask, render_template, request, send_file, jsonify
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 import json
 import os
+import pandas as pd
+from datetime import datetime
+import uuid
 
 app = Flask(__name__)
 
-class CustomPDF(FPDF):
-    def __init__(self):
-        super().__init__(orientation='L', unit='mm', format='A4')
-        # Register custom fonts from static/fonts directory
-        font_dir = os.path.join(os.path.dirname(__file__), 'static', 'fonts')
-        
-        self.custom_fonts = {
-            'CooperBlkBT-Italic': os.path.join(font_dir, 'CooperBlkBT-Italic.ttf'),
-            'CooperBlkBT-Regular': os.path.join(font_dir, 'CooperBlkBT-Regular.ttf'),
-            'CooperLtBT-Bold': os.path.join(font_dir, 'CooperLtBT-Bold.ttf'),
-            'CooperLtBT-BoldItalic': os.path.join(font_dir, 'CooperLtBT-BoldItalic.ttf'),
-            'CooperLtBT-Italic': os.path.join(font_dir, 'CooperLtBT-Italic.ttf'),
-            'CooperLtBT-Regular': os.path.join(font_dir, 'CooperLtBT-Regular.ttf'),
-            'CooperMdBT-Regular': os.path.join(font_dir, 'CooperMdBT-Regular.ttf')
-        }
-        
-        # Register all custom fonts
-        for font_name, font_path in self.custom_fonts.items():
-            try:
-                self.add_font(font_name, '', font_path, uni=True)
-            except Exception as e:
-                print(f"Error loading font {font_name}: {e}")
-
-    def text(self, x, y, txt):
-        # Override text method to handle encoding
+# Register fonts
+def register_fonts():
+    font_dir = os.path.join(app.root_path, 'static', 'fonts')
+    fonts = {
+        'CooperBlkBT-Italic': 'CooperBlkBT-Italic.ttf',
+        'CooperBlkBT-Regular': 'CooperBlkBT-Regular.ttf',
+        'CooperLtBT-Bold': 'CooperLtBT-Bold.ttf',
+        'CooperLtBT-BoldItalic': 'CooperLtBT-BoldItalic.ttf',
+        'CooperLtBT-Italic': 'CooperLtBT-Italic.ttf',
+        'CooperLtBT-Regular': 'CooperLtBT-Regular.ttf',
+        'CooperMdBT-Regular': 'CooperMdBT-Regular.ttf'
+    }
+    
+    for font_name, font_file in fonts.items():
+        font_path = os.path.join(font_dir, font_file)
         try:
-            if isinstance(txt, bytes):
-                txt = txt.decode('utf-8')
-            elif isinstance(txt, str):
-                txt = txt.encode('latin-1', errors='replace').decode('latin-1')
-            super().text(x, y, txt)
+            pdfmetrics.registerFont(TTFont(font_name, font_path))
         except Exception as e:
-            print(f"Error writing text: {e}")
-            super().text(x, y, '?')  # Fallback for problematic characters
+            print(f"Error registering font {font_name}: {e}")
 
+# Load font mapping
+FONT_MAPPING = {
+    'Arial': 'Helvetica',
+    'Times New Roman': 'Times-Roman',
+    'CooperBlkBT-Italic': 'CooperBlkBT-Italic',
+    'CooperBlkBT-Regular': 'CooperBlkBT-Regular',
+    'CooperLtBT-Bold': 'CooperLtBT-Bold',
+    'CooperLtBT-BoldItalic': 'CooperLtBT-BoldItalic',
+    'CooperLtBT-Italic': 'CooperLtBT-Italic',
+    'CooperLtBT-Regular': 'CooperLtBT-Regular',
+    'CooperMdBT-Regular': 'CooperMdBT-Regular'
+}
 
 def load_courses():
     if os.path.exists('courses.json'):
@@ -49,62 +52,108 @@ def load_courses():
 
 def save_courses(courses):
     with open('courses.json', 'w') as file:
-        json.dump(courses, file)
+        json.dump(courses, file, indent=2)
 
 def load_positions():
     try:
         with open('positions.json', 'r') as file:
-            return json.load(file)
+            positions = json.load(file)
+            # Ensure fontSize is stored as a number without 'px'
+            for element in positions.values():
+                element['fontSize'] = str(element.get('fontSize', '16')).replace('px', '')
+            return positions
     except (FileNotFoundError, json.JSONDecodeError):
         default_positions = {
             'name': {
                 'top': '280',
                 'left': '442',
                 'fontSize': '46',
-                'fontStyle': 'Arial'
+                'fontStyle': 'CooperBlkBT-Italic'
             },
             'certificate_id': {
                 'top': '600',
                 'left': '160',
                 'fontSize': '16',
-                'fontStyle': 'Arial'
+                'fontStyle': 'CooperBlkBT-Italic'
             },
-            'duration': {
+            'course_duration': {
                 'top': '600',
                 'left': '850',
                 'fontSize': '16',
-                'fontStyle': 'Arial'
+                'fontStyle': 'CooperLtBT-Italic'
             }
         }
         save_positions(default_positions)
         return default_positions
+
 def save_positions(positions):
-    # Clean and validate the positions data
     cleaned_positions = {}
     for key, value in positions.items():
         cleaned_positions[key] = {
             'top': str(value.get('top', '0')).replace('px', ''),
             'left': str(value.get('left', '0')).replace('px', ''),
             'fontSize': str(value.get('fontSize', '16')).replace('px', ''),
-            'fontStyle': value.get('fontStyle', 'Arial')
+            'fontStyle': value.get('fontStyle', 'CooperBlkBT-Italic')
         }
     
     with open('positions.json', 'w') as file:
         json.dump(cleaned_positions, file, indent=2)
-        
-def save_courses(courses):
-    with open('courses.json', 'w') as file:
-        json.dump(courses, file)
-@app.route('/save-positions', methods=['POST'])
+def generate_certificate(user_name, course_duration, certificate_id, positions, output_path):
+    # Get page dimensions for landscape orientation
+    page_width, page_height = landscape(letter)
+    
+    # Create the canvas with landscape orientation
+    c = canvas.Canvas(output_path, pagesize=landscape(letter))
+    
+    # Draw the certificate template
+    template_path = os.path.join('static', 'certificate-template.jpg')
+    c.drawImage(template_path, 0, 0, page_width, page_height)
+    
+    # Function to convert web coordinates to PDF coordinates
+    def convert_coordinates(web_x, web_y, web_width=1084, web_height=799):
+        pdf_x = (float(web_x) / web_width) * page_width
+        # Invert Y coordinate for PDF
+        pdf_y = page_height - ((float(web_y) / web_height) * page_height)
+        return pdf_x, pdf_y
+    
+    # Add text elements
+    for elem_id, content in {
+        'name': user_name,
+        'certificate_id': certificate_id,
+        'course_duration': course_duration
+    }.items():
+        if elem_id in positions:
+            pos = positions[elem_id]
+            x, y = convert_coordinates(pos['left'], pos['top'])
+            
+            # Get font details and ensure fontSize is a number
+            font_name = FONT_MAPPING.get(pos['fontStyle'].strip("'"), 'Helvetica')
+            font_size = float(str(pos['fontSize']).replace('px', ''))
+            
+            try:
+                c.setFont(font_name, font_size)
+                c.drawString(x, y, str(content))
+            except Exception as e:
+                print(f"Error with font {font_name}: {e}")
+                c.setFont('Helvetica', font_size)
+                c.drawString(x, y, str(content))
+    
+    c.save()
 
+
+@app.route('/')
+def index():
+    courses = load_courses()
+    return render_template('index.html', courses=courses)
+
+@app.route('/save-positions', methods=['POST'])
 def save_positions_route():
     try:
         positions = request.json
         save_positions(positions)
-        return jsonify({'status': 'success', 'message': 'Positions saved successfully'})
+        return jsonify({'status': 'success'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
 
 @app.route('/get-positions', methods=['GET'])
 def get_positions():
@@ -116,168 +165,84 @@ def get_positions():
 
 @app.route('/download-pdf', methods=['POST'])
 def download_pdf():
-    def __init__(self):
-        super().__init__(orientation='L', unit='mm', format='A4')
-        # Register custom fonts from static/fonts directory
-        font_dir = os.path.join(os.path.dirname(__file__), 'static', 'fonts')
-        
-        self.custom_fonts = {
-            'CooperBlkBT-Italic': os.path.join(font_dir, 'CooperBlkBT-Italic.ttf'),
-            'CooperBlkBT-Regular': os.path.join(font_dir, 'CooperBlkBT-Regular.ttf'),
-            'CooperLtBT-Bold': os.path.join(font_dir, 'CooperLtBT-Bold.ttf'),
-            'CooperLtBT-BoldItalic': os.path.join(font_dir, 'CooperLtBT-BoldItalic.ttf'),
-            'CooperLtBT-Italic': os.path.join(font_dir, 'CooperLtBT-Italic.ttf'),
-            'CooperLtBT-Regular': os.path.join(font_dir, 'CooperLtBT-Regular.ttf'),
-            'CooperMdBT-Regular': os.path.join(font_dir, 'CooperMdBT-Regular.ttf')
-        }
-        
-        # Register all custom fonts
-        for font_name, font_path in self.custom_fonts.items():
-            try:
-                self.add_font(font_name, '', font_path, uni=True)
-            except Exception as e:
-                print(f"Error loading font {font_name}: {e}")
-
-    def text(self, x, y, txt):
-        # Override text method to handle encoding
-        try:
-            if isinstance(txt, bytes):
-                txt = txt.decode('utf-8')
-            elif isinstance(txt, str):
-                txt = txt.encode('latin-1', errors='replace').decode('latin-1')
-            super().text(x, y, txt)
-        except Exception as e:
-            print(f"Error writing text: {e}")
-            super().text(x, y, '?')  # Fallback for problematic characters
     try:
-        # Get form data
-        user_name = request.form.get('user_name', 'user_name')
-        course_duration = request.form.get('course_duration', 'course_duration')
-        certificate_id = request.form.get('certificate_id', 'certificate_id')
-
-        # Load saved positions
+        user_name = request.form.get('user_name', '')
+        course_duration = request.form.get('course_duration', '')
+        certificate_id = request.form.get('certificate_id', '')
+        
         positions = load_positions()
-
-        # Initialize PDF with custom fonts
-        pdf = CustomPDF()
-        pdf.add_page()
-        pdf.image('static/certificate-template.jpg', x=0, y=0, w=297, h=210)
+        output_path = 'generated_certificate.pdf'
         
+        generate_certificate(user_name, course_duration, certificate_id, positions, output_path)
         
-        def add_text(pdf, text, position_data, element_type): # Updated font mapping with the available Cooper fonts
-            font_map = {
-        'Arial': 'Arial',
-        'Times New Roman': 'Times',
-        'CooperBlackItalic': 'CooperBlkBT-Italic',
-        'CooperBlackRegular': 'CooperBlkBT-Regular',
-        'CooperLightBold': 'CooperLtBT-Bold',
-        'CooperLightBoldItalic': 'CooperLtBT-BoldItalic',
-        'CooperLightItalic': 'CooperLtBT-Italic',
-        'CooperLightRegular': 'CooperLtBT-Regular',
-        'CooperMediumRegular': 'CooperMdBT-Regular'
-    }
-
-
-            # Get font size (remove 'px' if present and convert to integer)
-            font_size = position_data.get('fontSize', '16')
-            if isinstance(font_size, str):
-                font_size = font_size.replace('px', '')
-            font_size = int(float(font_size))
-
-            # Get font style (clean up font name)
-            font_style = position_data.get('fontStyle', 'Arial')
-            if isinstance(font_style, str):
-                font_style = font_style.split(',')[0].strip().replace('"', '')
-            font_name = font_map.get(font_style, 'Arial')
-             # Set font
-            try:
-                pdf.set_font(font_name, size=font_size)
-            except RuntimeError as e:
-                print(f"Font error: {e}. Falling back to Arial")
-                pdf.set_font('Arial', size=font_size)
-
-            # Get position values (remove 'px' if present and convert to float)
-            left = position_data.get('left', '0')
-            top = position_data.get('top', '0')
-            if isinstance(left, str):
-                left = left.replace('px', '')
-            if isinstance(top, str):
-                top = top.replace('px', '')
-            left = float(left)
-            top = float(top)
-
-            # Template and PDF dimensions
-            template_width = 1084
-            template_height = 799
-            pdf_width = 297
-            pdf_height = 210
-
-            # Calculate scaled positions
-            x = (left / template_width) * pdf_width
-            y = (top / template_height) * pdf_height
-
-            # Add text to PDF
-            pdf.set_text_color(0, 0, 0)  # Set text color to black
-            pdf.text(x=x, y=y, txt=str(text))
-
-        # Add elements to the PDF with proper position data
-        name_pos = positions.get('name', {})
-        cert_id_pos = positions.get('certificate_id', {})  # Note the hyphen
-        duration_pos = positions.get('course_duration', {})
-
-        # Add each text element
-        add_text(pdf, user_name, name_pos, 'name')
-        add_text(pdf, certificate_id, cert_id_pos, 'certificate_id')
-        add_text(pdf, course_duration, duration_pos, 'duration')
-
-        # Save and send PDF
-        pdf_file = 'generated_certificate.pdf'
-        pdf.output(pdf_file)
-
-        return send_file(pdf_file, as_attachment=True)
-
+        return send_file(output_path, as_attachment=True)
     except Exception as e:
-        print(f"Error in download_pdf: {e}")
         return jsonify({'error': str(e)}), 500
-@app.route('/')
-def index():
-    courses = load_courses()
-    return render_template('index.html', courses=courses)
+    
+@app.route('/upload-csv', methods=['POST'])
+def upload_csv():
+    if 'csv_file' not in request.files:
+        return 'No file uploaded', 400
+    
+    file = request.files['csv_file']
+    if file.filename == '' or not file.filename.endswith('.csv'):
+        return 'Invalid file', 400
+    
+    try:
+        # Create output directory
+        output_dir = os.path.join('static', 'certificates', 
+                                datetime.now().strftime('%Y%m%d_%H%M%S'))
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Read CSV and generate certificates
+        df = pd.read_csv(file)
+        positions = load_positions()
+        
+        for _, row in df.iterrows():
+            output_path = os.path.join(output_dir, f"certificate_{uuid.uuid4()}.pdf")
+            generate_certificate(
+                row.get('user_name', ''),
+                row.get('course_duration', ''),
+                row.get('certificate_id', ''),
+                positions,
+                output_path
+            )
+        
+        return f'Certificates generated in {output_dir}', 200
+    except Exception as e:
+        return f'Error generating certificates: {str(e)}', 500
 
 @app.route('/course/<course_name>', methods=['GET', 'POST'])
 def course_page(course_name):
     if request.method == 'GET':
         return render_template('course_form.html', course_name=course_name)
-    elif request.method == 'POST':
-        return certificate_preview()
+    return certificate_preview()
 
 @app.route('/certificate-preview', methods=['POST'])
 def certificate_preview():
-    user_name = request.form.get('user_name')
-    course_duration = request.form.get('course_duration')
-    certificate_id = request.form.get('certificate_id')
-    course_name = request.form.get('course_name')
-
     return render_template(
         'certificate_preview.html',
-        course_name=course_name,
-        user_name=user_name,
-        course_duration=course_duration,
-        certificate_id=certificate_id
+        user_name=request.form.get('user_name'),
+        course_duration=request.form.get('course_duration'),
+        certificate_id=request.form.get('certificate_id'),
+        course_name=request.form.get('course_name')
     )
 
 if __name__ == '__main__':
-    # Create necessary directories if they don't exist
-    os.makedirs('static/fonts/CooperBlackItalic', exist_ok=True)
+    # Create necessary directories
+    os.makedirs('static/fonts', exist_ok=True)
+    os.makedirs('static/certificates', exist_ok=True)
     
-    # Create empty positions.json if it doesn't exist
+    # Register fonts
+    register_fonts()
+    
+    # Initialize positions.json if it doesn't exist
     if not os.path.exists('positions.json'):
         default_positions = {
-            'name': {'top': '280px', 'left': '442px', 'fontSize': '46px', 'fontStyle': 'CooperBlackItalic'},
-            'certificate_id': {'top': '600px', 'left': '160px', 'fontSize': '16px', 'fontStyle': 'CooperBlackItalic'},
-            'duration': {'top': '600px', 'left': '850px', 'fontSize': '16px', 'fontStyle': 'CooperBlackItalic'}
+            'name': {'top': '280', 'left': '442', 'fontSize': '46', 'fontStyle': 'CooperBlkBT-Italic'},
+            'certificate_id': {'top': '600', 'left': '160', 'fontSize': '16', 'fontStyle': 'CooperBlkBT-Italic'},
+            'course_duration': {'top': '600', 'left': '850', 'fontSize': '16', 'fontStyle': 'CooperBlkBT-Italic'}
         }
-        with open('positions.json', 'w') as file:
-            json.dump(default_positions, file)
+        save_positions(default_positions)
     
     app.run(debug=True)

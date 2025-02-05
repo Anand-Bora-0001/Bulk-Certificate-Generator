@@ -1,3 +1,4 @@
+<!--This is course_form.html-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,7 +31,7 @@
             display: block;
             margin-bottom: 5px;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
@@ -57,6 +58,18 @@
             <div class="form-group">
                 <label for="user_name">User Name</label>
                 <input type="text" id="user_name" name="user_name" required>
+            </div>
+            <div class="form-group">
+                <label for="font">Select Font for User Name</label>
+                <select id="font" name="font">
+                    <option value="CooperBlkBT-Italic">CooperBlkBT-Italic</option>
+                    <option value="CooperBlkBT-Regular">CooperBlkBT-Regular</option>
+                    <option value="CooperLtBT-Bold">CooperLtBT-Bold</option>
+                    <option value="CooperLtBT-BoldItalic">CooperLtBT-BoldItalic</option>
+                    <option value="CooperLtBT-Italic">CooperLtBT-Italic</option>
+                    <option value="CooperLtBT-Regular">CooperLtBT-Regular</option>
+                    <option value="CooperMdBT-Regular">CooperMdBT-Regular</option>
+                </select>
             </div>
             <div class="form-group">
                 <label for="course_duration">Course Duration</label>
