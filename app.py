@@ -8,8 +8,46 @@ import os
 import pandas as pd
 from datetime import datetime
 import uuid
+from PyPDF2 import PdfReader, PdfWriter
+import io
+import zipfile
+from io import BytesIO
+
 
 app = Flask(__name__)
+
+UPLOAD_FOLDER = 'static/templates'
+ALLOWED_EXTENSIONS = {'jpg', 'pdf'}
+
+# Ensure upload directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload-templates', methods=['POST'])
+def upload_templates():
+    if 'jpgTemplate' not in request.files or 'pdfTemplate' not in request.files:
+        return jsonify({'error': 'Both templates are required'}), 400
+    
+    jpg_file = request.files['jpgTemplate']
+    pdf_file = request.files['pdfTemplate']
+    
+    # Check if files are selected
+    if jpg_file.filename == '' or pdf_file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    # Validate filenames
+    if jpg_file.filename != 'certificate-template.jpg' or pdf_file.filename != 'certificate-template.pdf':
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    try:
+        # Save the files
+        jpg_file.save(os.path.join(UPLOAD_FOLDER, 'certificate-template.jpg'))
+        pdf_file.save(os.path.join(UPLOAD_FOLDER, 'certificate-template.pdf'))
+        return jsonify({'message': 'Files uploaded successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Register fonts
 def register_fonts():
@@ -98,24 +136,21 @@ def save_positions(positions):
     
     with open('positions.json', 'w') as file:
         json.dump(cleaned_positions, file, indent=2)
-def generate_certificate(user_name, course_duration, certificate_id, positions, output_path):
+        
+def generate_certificate(user_name, course_duration, certificate_id, positions, output):
     # Get page dimensions for landscape orientation
     page_width, page_height = landscape(letter)
-    
-    # Create the canvas with landscape orientation
-    c = canvas.Canvas(output_path, pagesize=landscape(letter))
-    
-    # Draw the certificate template
-    template_path = os.path.join('static', 'certificate-template.jpg')
-    c.drawImage(template_path, 0, 0, page_width, page_height)
-    
+
+    # Create a temporary buffer for the text overlay
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=landscape(letter))
+
     # Function to convert web coordinates to PDF coordinates
     def convert_coordinates(web_x, web_y, web_width=1084, web_height=799):
         pdf_x = (float(web_x) / web_width) * page_width
-        # Invert Y coordinate for PDF
-        pdf_y = page_height - ((float(web_y) / web_height) * page_height)
+        pdf_y = page_height - ((float(web_y) / web_height) * page_height)  # Invert Y coordinate for PDF
         return pdf_x, pdf_y
-    
+
     # Add text elements
     for elem_id, content in {
         'name': user_name,
@@ -125,11 +160,10 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
         if elem_id in positions:
             pos = positions[elem_id]
             x, y = convert_coordinates(pos['left'], pos['top'])
-            
-            # Get font details and ensure fontSize is a number
+
             font_name = FONT_MAPPING.get(pos['fontStyle'].strip("'"), 'Helvetica')
             font_size = float(str(pos['fontSize']).replace('px', ''))
-            
+
             try:
                 c.setFont(font_name, font_size)
                 c.drawString(x, y, str(content))
@@ -137,10 +171,34 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
                 print(f"Error with font {font_name}: {e}")
                 c.setFont('Helvetica', font_size)
                 c.drawString(x, y, str(content))
-    
+
     c.save()
+    buffer.seek(0)
 
+    # Read the template PDF
+    template_path = os.path.join('static', 'templates', 'certificate-template.pdf')
+    reader = PdfReader(template_path)
+    template_page = reader.pages[0]
 
+    # Read overlay PDF from buffer
+    overlay = PdfReader(buffer)
+    overlay_page = overlay.pages[0]
+
+    # Merge template and overlay
+    template_page.merge_page(overlay_page)
+
+    # Create PDF writer
+    writer = PdfWriter()
+    writer.add_page(template_page)
+
+    # Write to output (either a file or in-memory buffer)
+    if isinstance(output, io.BytesIO):
+        writer.write(output)
+    else:
+        with open(output, 'wb') as output_file:
+            writer.write(output_file)
+
+    buffer.close()
 @app.route('/')
 def index():
     courses = load_courses()
@@ -183,34 +241,37 @@ def download_pdf():
 def upload_csv():
     if 'csv_file' not in request.files:
         return 'No file uploaded', 400
-    
+
     file = request.files['csv_file']
     if file.filename == '' or not file.filename.endswith('.csv'):
         return 'Invalid file', 400
-    
+
     try:
-        # Create output directory
-        output_dir = os.path.join('static', 'certificates', 
-                                datetime.now().strftime('%Y%m%d_%H%M%S'))
-        os.makedirs(output_dir, exist_ok=True)
-        
         # Read CSV and generate certificates
         df = pd.read_csv(file)
         positions = load_positions()
-        
-        for _, row in df.iterrows():
-            output_path = os.path.join(output_dir, f"certificate_{uuid.uuid4()}.pdf")
-            generate_certificate(
-                row.get('user_name', ''),
-                row.get('course_duration', ''),
-                row.get('certificate_id', ''),
-                positions,
-                output_path
-            )
-        
-        return f'Certificates generated in {output_dir}', 200
+
+        # Create an in-memory ZIP file
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for _, row in df.iterrows():
+                output_pdf = io.BytesIO()
+                generate_certificate(
+                    row.get('user_name', ''),
+                    row.get('course_duration', ''),
+                    row.get('certificate_id', ''),
+                    positions,
+                    output_pdf
+                )
+                output_pdf.seek(0)
+                zipf.writestr(f"certificate_{uuid.uuid4()}.pdf", output_pdf.getvalue())
+
+        zip_buffer.seek(0)
+        return send_file(zip_buffer, mimetype='application/zip', as_attachment=True, download_name='certificates.zip')
     except Exception as e:
         return f'Error generating certificates: {str(e)}', 500
+
+
 
 @app.route('/course/<course_name>', methods=['GET', 'POST'])
 def course_page(course_name):
