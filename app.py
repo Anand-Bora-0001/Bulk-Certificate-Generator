@@ -138,20 +138,15 @@ def save_positions(positions):
         json.dump(cleaned_positions, file, indent=2)
         
 def generate_certificate(user_name, course_duration, certificate_id, positions, output):
-    # Get page dimensions for landscape orientation
     page_width, page_height = landscape(letter)
-
-    # Create a temporary buffer for the text overlay
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=landscape(letter))
 
-    # Function to convert web coordinates to PDF coordinates
     def convert_coordinates(web_x, web_y, web_width=1084, web_height=799):
         pdf_x = (float(web_x) / web_width) * page_width
-        pdf_y = page_height - ((float(web_y) / web_height) * page_height)  # Invert Y coordinate for PDF
+        pdf_y = page_height - ((float(web_y) / web_height) * page_height)
         return pdf_x, pdf_y
 
-    # Add text elements
     for elem_id, content in {
         'name': user_name,
         'certificate_id': certificate_id,
@@ -167,6 +162,13 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
             try:
                 c.setFont(font_name, font_size)
                 c.drawString(x, y, str(content))
+
+                # **Add underline for user_name**
+                if elem_id == 'name':
+                    text_width = c.stringWidth(str(content), font_name, font_size)
+                    line_y = y - 2  # Slightly below the text
+                    c.line(x, line_y, x + text_width, line_y)
+
             except Exception as e:
                 print(f"Error with font {font_name}: {e}")
                 c.setFont('Helvetica', font_size)
@@ -175,23 +177,18 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
     c.save()
     buffer.seek(0)
 
-    # Read the template PDF
     template_path = os.path.join('static', 'templates', 'certificate-template.pdf')
     reader = PdfReader(template_path)
     template_page = reader.pages[0]
 
-    # Read overlay PDF from buffer
     overlay = PdfReader(buffer)
     overlay_page = overlay.pages[0]
 
-    # Merge template and overlay
     template_page.merge_page(overlay_page)
 
-    # Create PDF writer
     writer = PdfWriter()
     writer.add_page(template_page)
 
-    # Write to output (either a file or in-memory buffer)
     if isinstance(output, io.BytesIO):
         writer.write(output)
     else:
@@ -199,6 +196,7 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
             writer.write(output_file)
 
     buffer.close()
+
 @app.route('/')
 def index():
     courses = load_courses()
