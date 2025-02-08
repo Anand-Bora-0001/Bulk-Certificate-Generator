@@ -161,13 +161,17 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
 
             try:
                 c.setFont(font_name, font_size)
-                c.drawString(x, y, str(content))
 
-                # **Add underline for user_name**
+                # Calculate text width and adjust x to center it dynamically
+                text_width = c.stringWidth(str(content), font_name, font_size)
+                centered_x = x - (text_width / 2)
+
+                c.drawString(centered_x, y, str(content))
+
+                # Add underline for the user name
                 if elem_id == 'name':
-                    text_width = c.stringWidth(str(content), font_name, font_size)
                     line_y = y - 2  # Slightly below the text
-                    c.line(x, line_y, x + text_width, line_y)
+                    c.line(centered_x, line_y, centered_x + text_width, line_y)
 
             except Exception as e:
                 print(f"Error with font {font_name}: {e}")
@@ -196,6 +200,7 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
             writer.write(output_file)
 
     buffer.close()
+
 # Add this new route to Flask (app.py)
 @app.route('/delete-templates', methods=['POST'])
 def delete_templates():

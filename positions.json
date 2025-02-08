@@ -1,19 +1,19 @@
 {
   "name": {
     "top": "348",
-    "left": "419",
+    "left": "581",
     "fontSize": "46",
     "fontStyle": "CooperLtBT-Bold"
   },
   "certificate_id": {
     "top": "501",
-    "left": "177",
+    "left": "225",
     "fontSize": "16",
     "fontStyle": "\"Times New Roman\""
   },
   "course_duration": {
-    "top": "509",
-    "left": "905",
+    "top": "510",
+    "left": "957",
     "fontSize": "16",
     "fontStyle": "\"Times New Roman\""
   }
