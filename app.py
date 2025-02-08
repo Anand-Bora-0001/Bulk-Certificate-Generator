@@ -196,7 +196,37 @@ def generate_certificate(user_name, course_duration, certificate_id, positions, 
             writer.write(output_file)
 
     buffer.close()
+# Add this new route to Flask (app.py)
+@app.route('/delete-templates', methods=['POST'])
+def delete_templates():
+    try:
+        jpg_path = os.path.join(UPLOAD_FOLDER, 'certificate-template.jpg')
+        pdf_path = os.path.join(UPLOAD_FOLDER, 'certificate-template.pdf')
+        
+        # Delete files if they exist
+        if os.path.exists(jpg_path):
+            os.remove(jpg_path)
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            
+        return jsonify({'message': 'Templates deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
+# Add this new route to check template existence
+@app.route('/check-templates', methods=['GET'])
+def check_templates():
+    try:
+        jpg_exists = os.path.exists(os.path.join(UPLOAD_FOLDER, 'certificate-template.jpg'))
+        pdf_exists = os.path.exists(os.path.join(UPLOAD_FOLDER, 'certificate-template.pdf'))
+        
+        return jsonify({
+            'jpg_exists': jpg_exists,
+            'pdf_exists': pdf_exists
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
 @app.route('/')
 def index():
     courses = load_courses()
