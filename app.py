@@ -232,10 +232,14 @@ def check_templates():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
+@app.route('/certificate-form')
+def certificate_form():
+    return render_template('course_form.html')
+
+# Update the root route to serve the new page
 @app.route('/')
 def index():
-    courses = load_courses()
-    return render_template('index.html', courses=courses)
+    return render_template('index.html')
 
 @app.route('/save-positions', methods=['POST'])
 def save_positions_route():
