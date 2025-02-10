@@ -1,9 +1,11 @@
 # Certificate Generator
 
-A Flask-based web application for generating customizable certificates with dynamic text positioning and font styling.
+A modern, Flask-based web application for generating customizable certificates with a streamlined user interface. Developed by Anad Bora.
 
 ## Features
 
+- Clean, modern user interface with responsive design
+- Simplified certificate generation workflow
 - Upload and manage certificate templates (JPG/PDF)
 - Drag-and-drop interface for text positioning
 - Customizable font styles and sizes
@@ -11,7 +13,6 @@ A Flask-based web application for generating customizable certificates with dyna
 - Real-time certificate preview
 - PDF certificate generation
 - Multiple font family support (Cooper font family)
-- Responsive design
 
 ## Prerequisites
 
@@ -30,11 +31,10 @@ certificate-generator/
 │   ├── templates/     # Certificate templates
 │   └── fonts/         # Font files
 ├── templates/
-│   ├── index.html            # Course selection page
-│   ├── course_form.html      # Certificate details form
+│   ├── index.html            # Modern landing page
+│   ├── certificate_form.html  # Streamlined certificate form
 │   └── certificate_preview.html   # Preview and positioning
 ├── app.py                    # Main Flask application
-├── courses.json             # Course data storage
 └── positions.json           # Text position configurations
 ```
 
@@ -62,7 +62,7 @@ pip install -r requirements.txt
 mkdir -p static/templates static/fonts
 ```
 
-5. Place your Cooper font family files in the `static/fonts` directory:
+5. Place Cooper font family files in the `static/fonts` directory:
 - CooperBlkBT-Italic.ttf
 - CooperBlkBT-Regular.ttf
 - CooperLtBT-Bold.ttf
@@ -80,37 +80,28 @@ python app.py
 
 2. Access the application at `http://localhost:5000`
 
-3. Upload Certificate Templates:
-   - Name your JPG template as `certificate-template.jpg`
-   - Name your PDF template as `certificate-template.pdf`
-   - Use the template upload form to upload both files
-
-4. Generate Individual Certificates:
-   - Enter certificate details (name, duration, ID)
+3. Certificate Generation:
+   - Click on "Generate Certificate" from the main menu
+   - Enter certificate details
    - Use the drag-and-drop interface to position text
-   - Customize font styles and sizes
-   - Preview the certificate
-   - Download the generated PDF
+   - Preview and download the generated PDF
 
-5. Bulk Certificate Generation:
+4. Bulk Certificate Generation:
    - Prepare a CSV file with columns:
      - user_name
      - course_duration
      - certificate_id
    - Upload the CSV file
-   - Download the ZIP file containing all generated certificates
+   - Download the ZIP file containing all certificates
 
 ## API Endpoints
 
-- `GET /`: Home page with course selection
-- `GET /course/<course_name>`: Course-specific certificate form
+- `GET /`: Modern landing page
+- `GET /certificate-form`: Streamlined certificate generation form
 - `POST /upload-templates`: Upload certificate templates
 - `POST /save-positions`: Save text element positions
-- `GET /get-positions`: Retrieve current text positions
 - `POST /download-pdf`: Generate and download certificate PDF
 - `POST /upload-csv`: Bulk certificate generation
-- `POST /delete-templates`: Delete existing templates
-- `GET /check-templates`: Check template existence
 
 ## File Requirements
 
@@ -125,40 +116,6 @@ John Doe,6 Months,CERT001
 Jane Smith,3 Months,CERT002
 ```
 
-## Configuration Files
-
-### positions.json
-Stores the position and styling information for certificate text elements:
-```json
-{
-  "name": {
-    "top": "280",
-    "left": "442",
-    "fontSize": "46",
-    "fontStyle": "CooperBlkBT-Italic"
-  },
-  "certificate_id": {
-    "top": "600",
-    "left": "160",
-    "fontSize": "16",
-    "fontStyle": "CooperBlkBT-Italic"
-  },
-  "course_duration": {
-    "top": "600",
-    "left": "850",
-    "fontSize": "16",
-    "fontStyle": "CooperLtBT-Italic"
-  }
-}
-```
-
-## Error Handling
-
-- Template validation for file types and names
-- Error messages for upload failures
-- Validation for CSV format and content
-- Error handling for PDF generation
-
 ## Development
 
 To run the application in debug mode:
@@ -168,19 +125,14 @@ export FLASK_DEBUG=1
 python app.py
 ```
 
-## Notes
+## UI Features
 
-- The application uses the Cooper font family for certificate text
-- All positions are relative to the template dimensions (1084x799)
-- Font sizes are automatically adjusted for the certificate name to fit within bounds
-- The preview interface provides real-time visualization of text positioning
-
-## Security Considerations
-
-- Input validation for all form fields
-- Secure file handling for uploads
-- File type restrictions
-- Error handling for malformed requests
+- Modern, minimalist design
+- Responsive layout
+- Intuitive navigation
+- Clean button styling
+- Consistent color scheme
+- Mobile-friendly interface
 
 ## Browser Compatibility
 
@@ -190,6 +142,19 @@ Tested and supported on:
 - Safari 13+
 - Edge 80+
 
+## Security Considerations
+
+- Input validation for all form fields
+- Secure file handling for uploads
+- File type restrictions
+- Error handling for malformed requests
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Author
+
+Developed by Anand Bora
+
+For questions or support, please open an issue in the repository.
